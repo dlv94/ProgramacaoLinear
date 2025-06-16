@@ -16,52 +16,53 @@ def escolher_tipo(tipo):
         tipo = input("Tipo de problema (MAX ou MIN): ").strip().upper()
     return tipo
 
-def definir_funcao():
-    funcao_objetivo = ""
+def definir_funcao(funcao_objetivo):
+    """
+    Recebe uma função objetivo em formato de string e valida a expressão.
+    Retorna:
+        (True, funcao_objetivo, variaveis, constante) se estiver correta.
+        (False, mensagem_erro) se houver algum erro.
+    """
+    funcao_objetivo = funcao_objetivo.strip()
+    if funcao_objetivo == "":
+        return False, "Digite uma função objetivo válida.", None, None
+
+    if not validar_expressao(funcao_objetivo):
+        return False, "Expressão inválida. Verifique a sintaxe da função objetivo.", None, None
+
+    funcao = padronizar_expressao(funcao_objetivo).replace("-", "+-")
     variaveis = {}
     constante = 0
-    
-    while True:
-        # Solicita a função objetivo até que seja válida
-        while validar_expressao(funcao_objetivo) == False or funcao_objetivo.strip() == "":
-            funcao_objetivo = input("Digite uma função objetivo válida: ")
 
-        if "-" in funcao_objetivo:
-            funcao_objetivo = ""
+    for item_funcao in funcao.split("+"):
+        if not item_funcao.strip():
             continue
 
-        funcao = padronizar_expressao(funcao_objetivo)
-        funcao = funcao.replace("-", "+-")
-        variaveis = {}
-        constante = 0
-        tem_duplicata = False
-        
-        for item_funcao in funcao.split("+"):
-            if not item_funcao:
-                continue
-                
-            if "x" in item_funcao:
+        if "x" in item_funcao:
+            try:
                 item_funcao = item_funcao.split("x")
                 variavel, coef = _validar_variavel("x" + item_funcao[1], item_funcao[0])
-                
-                if variavel in variaveis:
-                    print(f"Erro: Variável {variavel} já existe na função.")
-                    tem_duplicata = True
-                    break
-                else:
-                    variaveis[variavel] = variaveis.get(variavel, 0) + float(coef)
-            else:
-                if item_funcao:
-                    constante += float(item_funcao)
-        
-        if not tem_duplicata:
-            break  # Sai do loop se não houver duplicatas
+            except:
+                return False, f"Erro ao processar a variável na expressão: {item_funcao}", None, None
+
+            if variavel in variaveis:
+                return False, f"Erro: Variável {variavel} já foi declarada na função.", None, None
+
+            variaveis[variavel] = variaveis.get(variavel, 0) + float(coef)
+
         else:
-            funcao_objetivo = ""  # Reseta para pedir nova entrada
+            try:
+                constante += float(item_funcao)
+            except:
+                return False, f"Erro ao processar termo constante: {item_funcao}", None, None
+
+    if not variaveis:
+        return False, "A função objetivo não possui variáveis válidas.", None, None
 
     variaveis = ordenar_variaveis(variaveis)
-    
-    return funcao_objetivo, variaveis, constante
+
+    return True, funcao_objetivo, variaveis, constante
+
 
 def ordenar_variaveis(dicionario_variaveis):
     chaves_ordenadas = sorted(
@@ -171,9 +172,16 @@ def adicionar_restricao(restricao, variaveis):
         termos = termos.replace("-","+-")
         for termo in termos.split("+"):
             termo = termo.split("x")
-            if len(termo)==1:
+            print(len(termo))
+            if termo == None:
+                continue
+            elif len(termo)==1:
                 #no caso identificou que é constante, logo o index 0 = coef, index 1 precisa informar que é constante pra somar posteriormente
                 termo.append("constante") # "constante"
+                try:
+                    termo = float(termo[0])
+                except:
+                    continue
             elif f'x{termo[1]}' in lista_var:
                 return False,f" Variável x{termo[1]} já existe na restrição: {restricao}"
             elif termo[0] == "":
@@ -182,8 +190,8 @@ def adicionar_restricao(restricao, variaveis):
                 termo[0] = -1.0  # Coeficiente implícito (ex: "-x1" → -1x1)
             else:
                 pass
-            if nao_negatividade and "-" in restricao:
-                return False, f'Expressão contém valores negativos'
+            #if nao_negatividade and "-" in restricao:
+            #    return False, f'Expressão contém valores negativos'
             #Faz dicionario das expressoes, verifica se já existe tal VAR, se existir ele soma o coef
             #print("coef: ",termo[0],"var: ",termo[1])
             termo[1] = termo[1] if termo[1] == "constante" else f"x{termo[1]}"
@@ -215,50 +223,48 @@ def adicionar_restricao(restricao, variaveis):
     
     return True, restricoes
 
-def coletar_restricoes(variaveis):
+def coletar_restricoes(lista_entradas, variaveis):
     """
-    Coleta restrições do usuário até que ele digite "ok".
-    Verifica se cada restrição é válida e evita duplicatas.
-    Retorna uma lista de restrições no formato:
-    [{'expr': {...}, 'operador': '<=', 'valor': 50.0}, ...]
+    Recebe uma lista de strings (cada string é uma restrição digitada pelo usuário).
+    Valida, processa e retorna uma lista de restrições no formato:
+        [{'expr': {...}, 'operador': '<=', 'valor': 50.0}, ...]
+    Retorna:
+        (True, restricoes) se tudo estiver certo.
+        (False, mensagem_erro) se houver algum erro.
     """
     restricoes = []
-    
-    while True:
-        entrada = input("Digite uma restrição válida (digite 'ok' para concluir): ").lower().strip()
-        
-        if entrada == "ok":
-            if not restricoes:
-                print("Nenhuma restrição foi adicionada. Adicione pelo menos uma restrição.")
-                continue
-            break
-            
-        # Processa a restrição
-        sucesso, resultado = adicionar_restricao(entrada,variaveis)
-        
+
+    if not lista_entradas:
+        return False, "Nenhuma restrição foi fornecida."
+
+    for entrada in lista_entradas:
+        entrada = entrada.lower().strip()
+
+        if entrada == "":
+            continue  # Ignora entradas vazias
+
+        sucesso, resultado = adicionar_restricao(entrada, variaveis)
+
         if not sucesso:
-            print(resultado)  # Mostra mensagem de erro
-            continue
-            
-        # Verifica se a restrição já existe
+            return False, f"Erro na restrição '{entrada}': {resultado}"
+
+        # Verifica se já existe essa restrição
         ja_existe = any(
-            (r["expr"] == resultado["expr"] and 
-             r["operador"] == resultado["operador"] and 
+            (r["expr"] == resultado["expr"] and
+             r["operador"] == resultado["operador"] and
              r["valor"] == resultado["valor"])
             for r in restricoes
         )
-        
+
         if ja_existe:
-            print("Restrição já existe e não será adicionada novamente.")
-        else:
-            restricoes.append(resultado)
-            print(f"Restrição adicionada: {resultado}")
-    
-    print(f"\n{len(restricoes)} restrições foram definidas:")
-    for i, restricao in enumerate(restricoes, 1):
-        print(f"{i}. {restricao}")
-    
-    return restricoes
+            return False, f"A restrição '{entrada}' já foi adicionada."
+
+        restricoes.append(resultado)
+
+    if not restricoes:
+        return False, "Adicione pelo menos uma restrição válida."
+
+    return True, restricoes
 
 
 #
@@ -266,33 +272,34 @@ def coletar_restricoes(variaveis):
 # Necessário testar, função talvez não será usado, e INSERIR CANTO NOROESTE
 #
 #
-def classificar_problema(tipo,funcao,variaveis,restricoes):
+def classificar_problema(variaveis,restricoes):
     possibilidades = []
 
     #Verificar se é possivel gerar gráfico
-    if len(variaveis <=2):
+    if len(variaveis) <=2:
         possibilidades.append("gráfico")
 
     # Classificação do problema
-    problema_especial = False
+    problema_simplex = True
+    problema_especial = True
     operadores_invalidos = False
 
     for restricao in restricoes:
         operador = restricao['operador']
         
-        if operador not in ['<=', '>=', '=']:
+        if operador not in ['<=', '>=', '==']:
             operadores_invalidos = True
             continue  # Pula para próxima restrição
         
-        if operador in ['>=', '='] and tipo == "MAX":
-            problema_especial = True
+        if operador in ['>=', '==']:
+            problema_simplex = False
 
     # Adiciona classificações baseadas nas restrições
     if operadores_invalidos:
         possibilidades.append("inválido")
-    elif problema_especial:
-        possibilidades.append("especial")
+    elif problema_simplex:
+        possibilidades.append("padrao")
     else:
-        possibilidades.append("padrão")
+        possibilidades.append("especial")
 
     return possibilidades
