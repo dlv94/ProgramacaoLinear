@@ -40,7 +40,7 @@
 
 import pandas as pd
 
-class SolucionadorSimplexDetalhado:
+class SolucionadorSimplex:
     def __init__(self, tipo, funcao_obj, restricoes):
         self.tipo = tipo
         self.funcao_obj = funcao_obj
@@ -56,8 +56,9 @@ class SolucionadorSimplexDetalhado:
         print("=== PREPARAÇÃO INICIAL ===")
         print("\n1. Transformando a função objetivo para forma padrão:")
         Z = self._processar_funcao_objetivo()
-        print(f"FO {self.tipo} (Z) = {self._formatar_equacao(Z[1:], self.variaveis_originais)} → "
-              f"FO {self.tipo} (Z) - {self._formatar_equacao([-x for x in Z[1:]], self.variaveis_originais)} = 0")
+        print(f"FO {self.tipo} (Z) = {self._formatar_equacao([-x for x in Z[1:]], self.variaveis_originais)} → "
+              f"FO {self.tipo} (Z) {self._formatar_equacao(Z[1:], self.variaveis_originais)} = 0")
+
         
         print("\n2. Adicionando variáveis de folga às restrições:")
         restricoes_padrao, variaveis_folga, b = self._processar_restricoes()
@@ -106,10 +107,10 @@ class SolucionadorSimplexDetalhado:
         dados_razoes = []
         for i, (valor_b, valor_col) in enumerate(zip(b, coluna_pivo)):
             if valor_col > 0:
-                dados_razoes.append([f"Linha {i+1}", f"{valor_b:.2f}/{valor_col:.2f}", f"{valor_b/valor_col:.2f}"])
-        print(pd.DataFrame(dados_razoes, columns=["Linha", "Razão", "Resultado"]).to_string(index=False))
+                dados_razoes.append([f"Linha {i+2}", f"{valor_b:.2f}/{valor_col:.2f}", f"{valor_b/valor_col:.2f}"])
+        print(pd.DataFrame(dados_razoes, columns=["Linha", "Razão", "Resultado"]).to_string(float_format="%.2f",index=False))
         
-        print(f"\nLinha que sai (OUT): Linha {(var_sai).replace("x","").replace("F","").replace("X","")} (menor razão positiva)")
+        print(f"\nLinha que sai (OUT): Linha {(var_sai_idx+1)} (menor razão positiva)")
         print(f"Elemento pivô: {elemento_pivo:.2f}")# (interseção de {var_entra} e {var_sai})")
         #bkp
         #print(f"\nVariável que sai (OUT): {var_sai} (menor razão positiva)")
@@ -117,16 +118,16 @@ class SolucionadorSimplexDetalhado:
         
         # Pivotamento
         print("\nPIVOTAMENTO:")
-        print(f"1. Normalizando linha pivô (linha {var_sai_idx}):\n")
+        print(f"1. Normalizando linha pivô (linha {var_sai_idx+1}):\n")
         linha_pivo_original = self.tabela.iloc[var_sai_idx].copy()
         linha_pivo_norm = linha_pivo_original / elemento_pivo
             
         # Mostra tabela com linha original e normalizada
         dados_pivo = [
-            ["Original"] + linha_pivo_original.to_list(),
-            [f"Normalizada /({elemento_pivo})"] + (linha_pivo_original / elemento_pivo).to_list()
+            ["Linha OUT"] + linha_pivo_original.to_list(),
+            [f"NLP /({elemento_pivo})"] + (linha_pivo_original / elemento_pivo).to_list()
         ]
-        print(pd.DataFrame(dados_pivo, columns=["Tipo"] + list(self.tabela.columns)).to_string(index=False))
+        print(pd.DataFrame(dados_pivo, columns=["Tipo"] + list(self.tabela.columns)).to_string(float_format="%.2f",index=False))
         
         # Normaliza a linha pivô
         linha_pivo_norm = linha_pivo_original / elemento_pivo
@@ -141,28 +142,24 @@ class SolucionadorSimplexDetalhado:
             
             coef_pivo = self.tabela.at[idx, var_entra]
             linha_original = self.tabela.iloc[idx].copy()
-            elemento_mult = coef_pivo * linha_pivo_norm
-            nova_linha = linha_original - elemento_mult
-
-                    # Monta tabela detalhada para cada linha
-            dados_linha = [
-                ["Nova Linha Pivo"] + linha_pivo_norm.to_list(),
-                [f"Elemento *({coef_pivo:.2f})"] + elemento_mult.to_list(),
-                ["Velha Linha "+str(idx)] + linha_original.to_list(),
-                ["Nova Linha "+str(idx)] + nova_linha.to_list()]
             
-            #print(f"\nAtualizando Linha {idx}:")
+            # CORREÇÃO: Inverte o sinal do coeficiente pivô
+            coef_pivo_invertido = -coef_pivo  # Inverte o sinal aqui
+            elemento_mult = coef_pivo_invertido * linha_pivo_norm  # Usa o coeficiente invertido
+            nova_linha = linha_original + elemento_mult  # Agora usa SOMA (porque o sinal já foi invertido)
+
+            # Monta tabela detalhada para cada linha
+            dados_linha = [
+                ["NLP"] + linha_pivo_norm.to_list(),
+                [f"*({coef_pivo_invertido:.2f})"] + elemento_mult.to_list(),  # Mostra o coeficiente invertido
+                ["VL "+str(idx)] + linha_original.to_list(),
+                ["NL "+str(idx)] + nova_linha.to_list()
+            ]
+            
             print(pd.DataFrame(
                 dados_linha,
-                columns=[f"Linha {idx}:"] + list(self.tabela.columns)
+                columns=[f"Linha {idx+1}:"] + list(self.tabela.columns)
             ).to_string(float_format="%.2f", index=False))
-            
-            #dados_atualizacao.append([
-            #    f"Linha {idx}",
-            #    f" - ({coef_pivo:.2f} × Linha Pivô)",
-            #    linha_original.to_list(),
-            #    nova_linha.to_list()
-            #])
             
             self.tabela.iloc[idx] = nova_linha
         
@@ -208,7 +205,7 @@ class SolucionadorSimplexDetalhado:
         # Exibe a solução formatada
         print("\n")
         dados_basicas = [[var, f"=  {valor:.2f}"] for var, valor in solucao['Variaveis_Basicas'].items()]
-        print(pd.DataFrame(dados_basicas, columns=["Variáveis", "Básicas:"]).to_string(index=False))
+        print(pd.DataFrame(dados_basicas, columns=["Variáveis", "Básicas:"]).to_string(float_format="%.2f",index=False))
         #BKP
         # print(pd.DataFrame(dados_basicas, columns=["Variável", "Valor"]).to_string(index=False))
         

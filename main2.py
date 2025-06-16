@@ -2,36 +2,34 @@ import re
 import funcoes
 import pandas as pd
 import simplexPadrao
+import simplexEspecial
 
 
 
 
 # --- Teste ---
 
-#tipo = funcoes.escolher_tipo("")
-#funcao, variaveis, constante = funcoes.definir_funcao()
-#print('resultado', funcao, variaveis, constante)
-#restricoes = funcoes.coletar_restricoes(variaveis)
-
-#print('Funcao: ',funcao,"\nvariaveis: ",variaveis)
-#print(restricoes)
-
-
+tipo = funcoes.escolher_tipo("")
+sucesso_inicio, funcao, variaveis, constante = funcoes.definir_funcao()
+print('resultado', funcao, variaveis, constante)
+sucesso_restricao, restricoes = funcoes.coletar_restricoes(variaveis)
+print('Funcao: ',funcao,"\nvariaveis: ",variaveis)
+print(restricoes)
+print("tipos:", funcoes.classificar_problema(variaveis,restricoes))
 
 
 # Dados de exemplo (conforme seu formato)
 #funcao_str = "5x1+23x2+3x3"
-tipo = "Max"
-variaveis = {'x1': 100.0, 'x2': 150.0}
-restricoes = [
-    {'expr': {'x1': 1.0}, 'operador': '<=', 'valor': 40.0},
-    {'expr': {'x2': 1.0}, 'operador': '<=', 'valor': 30.0},
-    {'expr': {'x1': 2.0, 'x2': 3.0}, 'operador': '<=', 'valor': 120.0}]
-
-#Chama o simplexPadra
-
-solucionador = simplexPadrao.SolucionadorSimplexDetalhado(tipo, variaveis, restricoes)
-solucionador.resolver()
+#tipo = "Max"
+#variaveis = {'x1': 15.0,'x2':10,'x3':8}
+#restricoes = [
+#    {'expr': {'x1': 1.0,'x2':2,'x3':-1.0}, 'operador': '<=', 'valor': 200.0},
+#    {'expr': {'x1': 2.0,'x2':2,'x3':1.0}, 'operador': '>=', 'valor': 400.0},
+#    {'expr': {'x1': 1.0, 'x2': 3.0,'x3':2}, 'operador': '==', 'valor': 840.0}]
+###Chama o simplexPadra
+#print("tipos:", funcoes.classificar_problema(variaveis,restricoes))
+#solucionador = simplexEspecial.SolucionadorSimplexBigM(tipo, variaveis, restricoes)
+#solucionador.resolver()
 
 
 # Apresentando os resultados
