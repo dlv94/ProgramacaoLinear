@@ -28,8 +28,8 @@ print("tipos:", funcoes.classificar_problema(variaveis,restricoes))
 #    {'expr': {'x1': 1.0, 'x2': 3.0,'x3':2}, 'operador': '==', 'valor': 840.0}]
 ###Chama o simplexPadra
 #print("tipos:", funcoes.classificar_problema(variaveis,restricoes))
-#solucionador = simplexEspecial.SolucionadorSimplexBigM(tipo, variaveis, restricoes)
-#solucionador.resolver()
+solucionador = simplexEspecial.SolucionadorSimplexBigM(tipo, variaveis, restricoes)
+solucionador.resolver()
 
 
 # Apresentando os resultados

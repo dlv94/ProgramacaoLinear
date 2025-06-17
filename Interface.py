@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 import funcoes
+import grafico
 import simplexPadrao
 import simplexEspecial
 import io
@@ -12,10 +13,11 @@ modelo_restricoes = ""
 modelo_tipo = ""
 variaveis = ""
 restricoes = ""
+constante = 0
 
 def verificar_modelo():
 
-    global modelo_funcao, modelo_restricoes, modelo_tipo, variaveis, restricoes
+    global modelo_funcao, modelo_restricoes, modelo_tipo, variaveis, restricoes, constante
     funcao = entrada_funcao.get().strip()
     restricoes = entrada_restricoes.get("1.0", tk.END).strip()
 
@@ -36,7 +38,7 @@ def verificar_modelo():
 
     if sucesso_inicio:
         #restricoes.append(resultado)
-        #print(sucesso_inicio, funcao, variaveis, constante)
+        print(sucesso_inicio, funcao, variaveis, constante)
         sucesso_restricao, restricoes = funcoes.coletar_restricoes(entrada_restricoes.get("1.0", "end-1c").split('\n'),variaveis)
         
     else:
@@ -79,7 +81,7 @@ def atualizar_modelo(funcao, variaveis, restricoes):
 
 def habilitar_botoes(possibilidades):
     desabilitar_botoes()
-    if "gráfico" in possibilidades:
+    if "gráfico" in possibilidades and len(variaveis) == 2:
         btn_grafico.config(state="normal")
     if "padrao" in possibilidades and tipo_var.get() == "Max":
         btn_simplex.config(state="normal")
@@ -136,12 +138,47 @@ def formatar_restricoes(restricoes):
 def abrir_janela_grafico():
     janela_grafico = tk.Toplevel(janela)
     janela_grafico.title("Gráfico")
-    janela_grafico.geometry("500x400")
+    janela_grafico.geometry("800x600")
+    janela_grafico.resizable(True, True)
 
-    tk.Label(janela_grafico, text="Aqui será exibido o Gráfico").pack(pady=20)
-    tk.Button(janela_grafico, text="Fechar", command=janela_grafico.destroy).pack(pady=10)
+    tk.Label(janela_grafico, text="Passos realizado do modelo:").pack(pady=20)
+
+    #janela_grafico.grab_set()  # Trava a janela principal
+
+    solucionador = grafico.SolucionadorGraficoPL(modelo_tipo, variaveis, restricoes, constante)
+    resultado = capturar_saida(solucionador.resolver)
+
+    # Frame para a caixa de texto e scrolls
+    frame_texto = tk.Frame(janela_grafico)
+    frame_texto.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+    # Scrollbar vertical
+    scrollbar_y = tk.Scrollbar(frame_texto, orient=tk.VERTICAL)
+    scrollbar_y.pack(side=tk.RIGHT, fill=tk.Y)
+
+    # Scrollbar horizontal
+    scrollbar_x = tk.Scrollbar(frame_texto, orient=tk.HORIZONTAL)
+    scrollbar_x.pack(side=tk.BOTTOM, fill=tk.X)
+
+    # Caixa de texto
+    caixa_texto = tk.Text(
+        frame_texto, 
+        wrap="none",  # Desativa quebra de linha para funcionar scroll horizontal
+        yscrollcommand=scrollbar_y.set,
+        xscrollcommand=scrollbar_x.set
+    )
+    caixa_texto.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    # Conecta os scrollbars à caixa de texto
+    scrollbar_y.config(command=caixa_texto.yview)
+    scrollbar_x.config(command=caixa_texto.xview)
+
+    # Insere o resultado na caixa de texto
+    caixa_texto.insert(tk.END, resultado)
+    caixa_texto.config(state='disabled')
 
     janela_grafico.grab_set()  # Trava a janela principal
+    tk.Button(janela_grafico, text="Fechar", command=janela_grafico.destroy).pack(pady=10)
 
 def abrir_janela_simplex():
     janela_simplex = tk.Toplevel(janela)

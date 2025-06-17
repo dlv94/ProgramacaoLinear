@@ -1,5 +1,6 @@
 import pandas as pd
-from time import sleep
+import sys
+
 
 class SolucionadorSimplexBigM:
     def __init__(self, tipo, funcao_obj, restricoes):
@@ -29,7 +30,8 @@ class SolucionadorSimplexBigM:
         #self._identificar_variaveis()
         
         # Continuação do algoritmo...
-        while True:
+        contador = 0
+        while True and contador < 100:
             self.iteracao += 1
             print(f"\n\n=== ALGORITMO {self.iteracao} ===\n")
             self._mostrar_tabela()
@@ -39,8 +41,9 @@ class SolucionadorSimplexBigM:
                 break
                 
             self._processar_iteracao()
+            contador += 1
+            sys.stderr.write(f"Iteração: {contador}\n")
 
-            sleep(1)
 
     def _mostrar_funcao_objetivo(self, vars_artificiais):
         """Mostra a função objetivo após as restrições"""

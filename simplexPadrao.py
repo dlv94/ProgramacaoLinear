@@ -39,6 +39,7 @@
 
 
 import pandas as pd
+import sys
 
 class SolucionadorSimplex:
     def __init__(self, tipo, funcao_obj, restricoes):
@@ -66,8 +67,8 @@ class SolucionadorSimplex:
         # Cria tabela mas não mostra ainda
         self.tabela = self._criar_tabela_simplex(Z, restricoes_padrao, variaveis_folga, b)
         self._identificar_variaveis()
-        
-        while True:
+        contador = 0
+        while True and contador < 100:
             self.iteracao += 1
             print(f"\n\n=== ALGORITMO {self.iteracao} ===\n")
             self._mostrar_tabela()
@@ -79,6 +80,8 @@ class SolucionadorSimplex:
             
             # Processa iteração se não for ótima
             self._processar_iteracao()
+            contador += 1
+            sys.stderr.write(f"Iteração: {contador}\n")
     
     def _processar_iteracao(self):
         """Executa e mostra detalhes de uma iteração completa"""
